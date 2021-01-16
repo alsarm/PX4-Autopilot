@@ -963,7 +963,7 @@ bool Logger::get_disable_boot_logging()
 		uORB::Subscription battery_status_sub{ORB_ID(battery_status)};
 
 		if (battery_status_sub.copy(&battery_status)) {
-			if (!battery_status.connected) {
+			if (hrt_elapsed_time(&battery_status.timestamp) < 1_s) {
 				return true;
 			}
 

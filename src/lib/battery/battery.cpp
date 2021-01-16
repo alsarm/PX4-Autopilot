@@ -51,6 +51,8 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us) 
 	ModuleParams(parent),
 	_index(index < 1 || index > 9 ? 1 : index)
 {
+	_battery_status_pub.advertise();
+
 	const float expected_filter_dt = static_cast<float>(sample_interval_us) / 1_s;
 	_voltage_filter_v.setParameters(expected_filter_dt, 1.f);
 	_current_filter_a.setParameters(expected_filter_dt, .5f);
@@ -112,16 +114,24 @@ void Battery::reset()
 	_battery_status.cell_count = _params.n_cells;
 	// TODO: check if it is sane to reset warning to NONE
 	_battery_status.warning = battery_status_s::BATTERY_WARNING_NONE;
-	_battery_status.connected = false;
 	_battery_status.capacity = _params.capacity > 0.0f ? (uint16_t)_params.capacity : 0;
 	_battery_status.temperature = NAN;
 	_battery_status.id = (uint8_t) _index;
 }
 
-void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v, float current_a, bool connected,
-				  int source, int priority, float throttle_normalized)
+void Battery::updateBatteryStatus(float voltage_v, float current_a, int source)
 {
 	reset();
+
+	float throttle_normalized = 0.f;
+
+	{
+		actuator_controls_s actuator_controls;
+
+		if (_actuator_controls_0_sub.copy(&actuator_controls)) {
+			throttle_normalized = actuator_controls.control[actuator_controls_s::INDEX_THROTTLE];
+		}
+	}
 
 	if (!_battery_initialized) {
 		_voltage_filter_v.reset(voltage_v);
@@ -132,12 +142,12 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v,
 	_voltage_filter_v.update(voltage_v);
 	_current_filter_a.update(current_a);
 	_throttle_filter.update(throttle_normalized);
-	sumDischarged(timestamp, current_a);
+	sumDischarged(hrt_absolute_time(), current_a);
 	estimateRemaining(_voltage_filter_v.getState(), _current_filter_a.getState(), _throttle_filter.getState());
 	computeScale();
 
 	if (_battery_initialized) {
-		determineWarning(connected);
+		determineWarning();
 	}
 
 	if (_voltage_filter_v.getState() > 2.1f) {
@@ -150,9 +160,7 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v,
 		_battery_status.discharged_mah = _discharged_mah;
 		_battery_status.warning = _warning;
 		_battery_status.remaining = _remaining;
-		_battery_status.connected = connected;
 		_battery_status.source = source;
-		_battery_status.priority = priority;
 
 		static constexpr int uorb_max_cells = sizeof(_battery_status.voltage_cell_v) / sizeof(
 				_battery_status.voltage_cell_v[0]);
@@ -161,10 +169,10 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v,
 		for (int i = 0; (i < _battery_status.cell_count) && (i < uorb_max_cells); i++) {
 			_battery_status.voltage_cell_v[i] = _battery_status.voltage_filtered_v / _battery_status.cell_count;
 		}
-	}
 
-	if (source == _params.source) {
-		publish();
+		if (source == _params.source) {
+			publish();
+		}
 	}
 }
 
@@ -233,22 +241,20 @@ void Battery::estimateRemaining(const float voltage_v, const float current_a, co
 	}
 }
 
-void Battery::determineWarning(bool connected)
+void Battery::determineWarning()
 {
-	if (connected) {
-		// propagate warning state only if the state is higher, otherwise remain in current warning state
-		if (_remaining < _params.emergen_thr) {
-			_warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+	// propagate warning state only if the state is higher, otherwise remain in current warning state
+	if (_remaining < _params.emergen_thr) {
+		_warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
 
-		} else if (_remaining < _params.crit_thr) {
-			_warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+	} else if (_remaining < _params.crit_thr) {
+		_warning = battery_status_s::BATTERY_WARNING_CRITICAL;
 
-		} else if (_remaining < _params.low_thr) {
-			_warning = battery_status_s::BATTERY_WARNING_LOW;
+	} else if (_remaining < _params.low_thr) {
+		_warning = battery_status_s::BATTERY_WARNING_LOW;
 
-		} else {
-			_warning = battery_status_s::BATTERY_WARNING_NONE;
-		}
+	} else {
+		_warning = battery_status_s::BATTERY_WARNING_NONE;
 	}
 }
 

@@ -3843,7 +3843,7 @@ void Commander::battery_status_check()
 
 	for (auto &battery_sub : _battery_status_subs) {
 		if (battery_sub.copy(&batteries[num_connected_batteries])) {
-			if (batteries[num_connected_batteries].connected) {
+			if (hrt_elapsed_time(&batteries[num_connected_batteries].timestamp) < 2_s) {
 				num_connected_batteries++;
 			}
 		}
