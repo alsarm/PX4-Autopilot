@@ -281,6 +281,7 @@ mavlink stream -r 500 -s OPTICAL_FLOW_RAD -d /dev/ttyS1
 mavlink stream -r 500 -s DISTANCE_SENSOR -d /dev/ttyS1
 
 
+
 # API/Offboard link
 mavlink start -x -u $udp_offboard_port_local -r 4000000 -m onboard -o $udp_offboard_port_remote
 
