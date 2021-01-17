@@ -88,3 +88,33 @@ PARAM_DEFINE_FLOAT(BAT_CRIT_THR, 0.07f);
  * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(BAT_EMERGEN_THR, 0.05f);
+/**
+ * Sticky battery warnings
+ *
+ * If enabled, battery warnings are not cleared when voltage returns to nominal
+ * levels.
+ *
+ * @value 0 Disabled
+ * @value 1 Enabled
+ *
+ * @group Battery Calibration
+ * @min 0
+ * @max 1
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(BAT_STICKY_WARN, 1);
+
+/**
+ * Battery voltage settling time.
+ *
+ * Only fire warnings after battery has been connected for this long. Prevents
+ * issues where voltage is low because caps are charging.
+ *
+ * @group Battery Calibration
+ * @unit s
+ * @decimal 3
+ * @min 0.0
+ * @max 10.0
+ * @increment 0.1
+ */
+PARAM_DEFINE_FLOAT(BAT_SETTLE_TIME, 0.125f);

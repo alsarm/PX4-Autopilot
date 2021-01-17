@@ -10,6 +10,6 @@ then
 fi
 
 set LOGGER_BUF 64
-
-rgbled_pwm start
+param set SER_TEL2_BAUD 921600
+# rgbled_pwm start
 safety_button start

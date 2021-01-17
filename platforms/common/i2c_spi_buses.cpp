@@ -158,6 +158,7 @@ int BusCLIArguments::getopt(int argc, char *argv[], const char *options)
 			spi_mode = (spi_mode_e)atoi(_optarg);
 			break;
 
+
 		default:
 			if (ch == '?') {
 				// abort further parsing on unknown arguments
@@ -485,12 +486,12 @@ int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterat
 		I2CSPIDriverBase *instance = initializer_data.instance;
 
 		if (!instance) {
-			PX4_DEBUG("instantiate failed (no device on bus %i (devid 0x%x)?)", iterator.bus(), iterator.devid());
+			PX4_WARN("instantiate failed (no device on bus %i (devid 0x%x)?)", iterator.bus(), iterator.devid());
 			continue;
 		}
 
 		if (cli.i2c_address != 0 && instance->_i2c_address == 0) {
-			PX4_ERR("Bug: driver %s does not pass the I2C address to I2CSPIDriverBase", instance->ItemName());
+			PX4_WARN("Bug: driver %s does not pass the I2C address to I2CSPIDriverBase", instance->ItemName());
 		}
 
 		iterator.addInstance(instance);

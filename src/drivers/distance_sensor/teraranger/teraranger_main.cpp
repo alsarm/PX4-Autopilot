@@ -82,7 +82,11 @@ extern "C" __EXPORT int teraranger_main(int argc, char *argv[])
 	using ThisDriver = TERARANGER;
 	BusCLIArguments cli{true, false};
 	cli.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-	cli.default_i2c_frequency = 100000;
+	cli.default_i2c_frequency = 400000;
+	cli.bus_frequency = 400000;
+	
+	//int probing = ThisDriver::probe();
+	//printf("Is there a Teraranger? %d\n",probing);
 
 	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
@@ -102,6 +106,12 @@ extern "C" __EXPORT int teraranger_main(int argc, char *argv[])
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_DIST_DEVTYPE_TERARANGER);
 
 	if (!strcmp(verb, "start")) {
+
+		static int a {-1};
+
+
+		a = ThisDriver::module_start(cli, iterator);
+		printf(" Start module failed?  %d \n",a);
 		return ThisDriver::module_start(cli, iterator);
 	}
 

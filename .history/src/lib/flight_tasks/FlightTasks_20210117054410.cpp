@@ -15,18 +15,37 @@ FlightTasks::FlightTasks()
 	_initTask(FlightTaskIndex::None);
 }
 
-bool FlightTasks::update()
+// bool FlightTasks::update()
+// {
+// 	_updateCommand();
+
+// 	if (isAnyTaskActive()) {
+// 		return _current_task.task->updateInitialize() && _current_task.task->update() && _current_task.task->updateFinalize();
+// 	}
+
+// 	return false;
+// }
+
+Error FlightTasks::update()
 {
+    Error error;
 	_updateCommand();
 
-	if (isAnyTaskActive()) {
-		return _current_task.task->updateInitialize() && _current_task.task->update() && _current_task.task->updateFinalize();
+
+	if (!isAnyTaskActive()) {
+        return "no active task";
+    }
+
+	_subscription_array.update();
+	if (!(error = _current_task.task->updateInitialize()).ok()) {
+        return error;
+    }
+    if (!(error = _current_task.task->update()).ok()) {
+        return error;
 	}
 
-	return false;
+	return true;
 }
-
-
 const vehicle_local_position_setpoint_s FlightTasks::getPositionSetpoint()
 {
 	if (isAnyTaskActive()) {
